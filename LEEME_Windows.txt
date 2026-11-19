@@ -1,0 +1,9 @@
+EcoAccess P3 - Presentacion MVP 3D (Windows 11)
+
+1. Descomprime esta carpeta.
+2. Doble clic en Abrir_presentacion.bat (Edge) o en dist\index.html.
+3. F pantalla completa. Flechas para navegar. N guion. T panel tecnico. H ayuda.
+
+No requiere internet ni instalacion. La simulacion es demostrativa:
+no se conecta a Telegram, Oracle, la IA visual ni al ESP32.
+Guion oral completo: GUION_5_MINUTOS.md

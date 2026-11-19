@@ -1,0 +1,149 @@
+<title>EcoAccess P3 · MVP 3D</title>
+<meta name="description" content="EcoAccess P3 · Producto Mínimo Viable · Jorge Alfonso Gutiérrez Thomas · Universidad Popular del Cesar">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>/*CSS*/</style>
+
+<div id="viewport">
+<div id="stage">
+
+<!-- ===================== DIAPOSITIVA 1 ===================== -->
+<section class="slide active" id="s1" aria-label="Diapositiva 1 de 2: EcoAccess en acción">
+  <header class="hdr">
+    <div class="hl">
+      <div class="kicker"><i></i>EcoAccess P3 · Producto Mínimo Viable · 1 / 2</div>
+      <h1>EcoAccess en acción</h1>
+      <p class="sub">Del escaneo del QR a la caneca correcta, con cada interacción registrada</p>
+    </div>
+    <div class="who">
+      <b>Jorge Alfonso Gutiérrez Thomas</b>
+      <span>Universidad Popular del Cesar — Ingeniería de Sistemas</span>
+      <em class="badge"><i></i>Prototipo avanzado · MVP en validación</em>
+    </div>
+  </header>
+
+  <div class="stage3d" id="c1" role="img" aria-label="Escena 3D: celular, asistente ECO y estación de tres canecas (negra, verde, blanca) con un único código QR"></div>
+  <div class="tags" id="tags1" aria-hidden="true"></div>
+  <div class="demo-chip" id="demoChip"><i></i>Representación demostrativa · la animación no acredita hardware integrado ni validado</div>
+  <div class="cap" id="cap1" aria-live="polite"><b>Pulsa «Iniciar demostración»</b><span>Arrastra para girar la escena, rueda para acercar y haz clic en una tapa para abrirla.</span></div>
+  <div class="logbox"><h4>Registro de interacciones <small>datos de demostración</small></h4><ol id="log1"></ol></div>
+
+  <ol class="flow" id="flow" aria-label="Recorrido funcional"></ol>
+
+  <div class="simbar">
+    <button class="sim primary" data-sim="pet"><i class="sw" style="--c:#EEF1EC"></i>Iniciar demostración · Botella PET <kbd>1</kbd></button>
+    <button class="sim" data-sim="banano"><i class="sw" style="--c:#2F8A3C"></i>Cáscara de banano <kbd>2</kbd></button>
+    <button class="sim" data-sim="servilleta"><i class="sw" style="--c:#1D2320"></i>Servilleta contaminada <kbd>3</kbd></button>
+    <button class="sim warn" data-sim="desconocido"><i class="sw q">?</i>Residuo desconocido <kbd>4</kbd></button>
+    <span class="sep"></span>
+    <button class="ctl" data-act="pause" aria-label="Pausar o reanudar">⏸ Pausar <kbd>P</kbd></button>
+    <button class="ctl" data-act="replay" aria-label="Repetir">↺ Repetir <kbd>R</kbd></button>
+    <button class="ctl" data-act="eco" aria-label="Acercar la cámara a ECO">☺ ECO <kbd>E</kbd></button>
+    <button class="ctl" data-act="view" aria-label="Restablecer vista">⌖ Vista <kbd>0</kbd></button>
+  </div>
+
+  <aside class="archcol">
+    <h2>Arquitectura tecnológica</h2>
+    <p class="archsub">Quién usa qué, y por dónde viaja la consulta</p>
+    <div class="archwrap" id="c1arch" role="img" aria-label="Esquema 3D de arquitectura por capas: roles, canales, inteligencia, lógica, datos y hardware"></div>
+    <div class="legend">
+      <span><i class="lg dev"></i>Desarrollado</span>
+      <span><i class="lg mvp"></i>Propuesto para el MVP</span>
+      <span><i class="lg pend"></i>Pendiente de validación</span>
+    </div>
+    <p class="archinfo" id="archInfo"></p>
+  </aside>
+</section>
+
+<!-- ===================== DIAPOSITIVA 2 ===================== -->
+<section class="slide" id="s2" aria-label="Diapositiva 2 de 2: cómo construir y validar el MVP">
+  <header class="hdr">
+    <div class="hl">
+      <div class="kicker"><i></i>EcoAccess P3 · Producto Mínimo Viable · 2 / 2</div>
+      <h1>Cómo construir y validar el MVP</h1>
+      <p class="sub">¿Cuál es el MVP de EcoAccess y cómo demostraríamos que funciona?</p>
+    </div>
+    <div class="who">
+      <b>Jorge Alfonso Gutiérrez Thomas</b>
+      <span>Universidad Popular del Cesar — Ingeniería de Sistemas</span>
+      <em class="badge amber"><i></i>Metas propuestas · piloto sin ejecutar</em>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="Fases del MVP">
+    <div class="track"><div class="fill"></div></div>
+    <button data-phase="0"><span>1</span>Definir</button>
+    <button data-phase="1"><span>2</span>Integrar</button>
+    <button data-phase="2"><span>3</span>Probar</button>
+    <button data-phase="3"><span>4</span>Validar</button>
+  </nav>
+
+  <div class="stage3d" id="c2" role="img" aria-label="Infografía 3D con cuatro islas: definir, integrar, probar y validar"></div>
+  <div class="tags" id="tags2" aria-hidden="true"></div>
+  <p class="cap2" id="cap2"></p>
+  <div class="panel2" id="panel2" aria-live="polite"></div>
+
+  <footer class="concl">
+    <div class="q">
+      <span class="mark">Conclusión</span>
+      <p>El MVP de EcoAccess debe demostrar que una persona puede <b>consultar un residuo</b>, <b>recibir orientación correcta</b> y <b>registrar la interacción</b> de manera funcional, segura y verificable.</p>
+    </div>
+    <div class="dist">
+      <div><b>Consulta</b> ≠ depósito confirmado</div>
+      <div><b>Simulación</b> ≠ prueba física</div>
+      <div><b>Desarrollado</b> ≠ validado</div>
+      <div><b>Datos sintéticos</b> ≠ registros reales</div>
+    </div>
+  </footer>
+</section>
+
+</div>
+</div>
+
+<!-- Controles del expositor -->
+<div class="hud" id="hud" role="toolbar" aria-label="Controles del expositor">
+  <button data-ui="prev" aria-label="Diapositiva anterior" title="Anterior (←)">‹</button>
+  <span class="pg" id="pg">1 / 2</span>
+  <button data-ui="next" aria-label="Diapositiva siguiente" title="Siguiente (→)">›</button>
+  <i class="div"></i>
+  <button data-ui="fs" title="Pantalla completa (F)">⛶<span>F</span></button>
+  <button data-ui="notes" title="Guion del expositor (N)">Guion<span>N</span></button>
+  <button data-ui="tech" title="Panel técnico (T)">Técnico<span>T</span></button>
+  <button data-ui="quality" title="Calidad gráfica (Q)">Calidad: Alta<span>Q</span></button>
+  <button data-ui="motion" title="Movimiento reducido (M)">Mov. reducido<span>M</span></button>
+  <button data-ui="help" title="Ayuda (H)">?</button>
+</div>
+
+<aside class="notes" id="notes" aria-label="Guion del expositor"><div class="nhead"><h3 id="notesTitle"></h3><span id="notesTime"></span><button data-close="notes" aria-label="Cerrar">×</button></div><div id="notesBody"></div></aside>
+<aside class="drawer" id="tech" aria-label="Panel técnico"><button class="x" data-close="tech" aria-label="Cerrar">×</button><div id="techBody"></div></aside>
+<div class="modal" id="help"><div class="box">
+  <button class="x" data-close="help" aria-label="Cerrar">×</button>
+  <h2>Controles</h2>
+  <div class="cols">
+    <table>
+      <tr><th colspan="2">General</th></tr>
+      <tr><td><kbd>→</kbd> <kbd>Espacio</kbd></td><td>Diapositiva siguiente</td></tr>
+      <tr><td><kbd>←</kbd></td><td>Diapositiva anterior</td></tr>
+      <tr><td><kbd>F</kbd></td><td>Pantalla completa</td></tr>
+      <tr><td><kbd>N</kbd></td><td>Guion del expositor</td></tr>
+      <tr><td><kbd>T</kbd></td><td>Panel técnico</td></tr>
+      <tr><td><kbd>M</kbd></td><td>Movimiento reducido</td></tr>
+      <tr><td><kbd>A</kbd> <kbd>D</kbd> · <kbd>W</kbd> <kbd>S</kbd></td><td>Girar · acercar / alejar</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Cerrar paneles</td></tr>
+    </table>
+    <table>
+      <tr><th colspan="2">Diapositiva 1</th></tr>
+      <tr><td><kbd>1</kbd>–<kbd>4</kbd></td><td>PET · banano · servilleta · desconocido</td></tr>
+      <tr><td><kbd>P</kbd> · <kbd>R</kbd></td><td>Pausar · repetir</td></tr>
+      <tr><td><kbd>0</kbd> · <kbd>E</kbd></td><td>Restablecer vista · acercarse a ECO</td></tr>
+      <tr><td>Clic en tapa</td><td>Abrir / cerrar caneca</td></tr>
+      <tr><th colspan="2">Diapositiva 2</th></tr>
+      <tr><td><kbd>1</kbd>–<kbd>4</kbd></td><td>Fases del MVP</td></tr>
+      <tr><td><kbd>P</kbd></td><td>Recorrer pruebas (fase 3)</td></tr>
+      <tr><td><kbd>V</kbd></td><td>Metas ↔ resultados reales</td></tr>
+    </table>
+  </div>
+</div></div>
+<div class="nogl" id="nogl" hidden><div><b>WebGL no está disponible en este navegador.</b><p>Activa la aceleración por hardware en Edge o Chrome para ver los modelos 3D. Los textos, el guion (N) y el panel técnico (T) siguen disponibles.</p></div></div>
+<script>/*JS*/</script>
