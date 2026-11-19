@@ -90,6 +90,10 @@ node build.mjs     # genera dist/index.html, dist/web/index.html, dist/artifact.
 
 ## 6. Publicación
 
+- **Enlace público (GitHub Pages):** https://jorgegutho21.github.io/EcoAccess-P3-MVP-3D/ · repositorio: https://github.com/JorgeGutho21/EcoAccess-P3-MVP-3D
+- **Actualizar la web:** `node build.mjs`, copiar `dist/web/index.html` a `docs/index.html`, luego `git commit` y `git push`. GitHub Pages se actualiza en 1–2 minutos.
+- **Fluidez:** la página baja sola la calidad gráfica si el equipo no mantiene unos 45 fps (tecla **Q** para cambiarla a mano: Alta, Media, Ligera).
+
 - **Publicada en claude.ai como Artifact** (enlace HTTPS). Se crea **privada**: para que otras personas la abran, actívala desde el menú **Compartir** de la página.
 - **Alternativas sin cuenta de desarrollador:** arrastra la carpeta `dist/web` a <https://app.netlify.com/drop>, o sube `dist/web/index.html` a un repositorio de GitHub y activa *Settings → Pages*. Cloudflare Pages y Vercel aceptan la misma carpeta.
 
