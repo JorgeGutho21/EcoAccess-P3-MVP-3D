@@ -384,7 +384,7 @@ export class Slide1 {
   worldOf(obj, local) { return obj.localToWorld(local.clone()); }
 
   resetScene() {
-    Object.values(this.items).forEach((it) => { it.visible = false; this.stU.handL.add(it); it.position.set(0, -0.16, 0.06); it.scale.setScalar(0.8); it.rotation.set(0, 0, 0); });
+    Object.values(this.items).forEach((it) => { it.visible = false; this.stU.handL.add(it); it.position.set(0, -0.08, 0.07); it.scale.setScalar(0.8); it.rotation.set(0, 0, 0); });
     this.spose = 'idle';
     this.bins.forEach((b) => { b.userData.lid.rotation.x = 0; b.userData.led.emissiveIntensity = 0; b.userData.halo.material.opacity = 0; });
     this.warnRing.material.opacity = 0;
@@ -430,7 +430,7 @@ export class Slide1 {
       this.caption('1 · El estudiante llega con su residuo', `Trae ${w.nombre.toLowerCase()} y abre la cámara del celular.`);
     });
     tl.fromTo(item.scale, { x: 0.01, y: 0.01, z: 0.01 }, { x: 1, y: 1, z: 1, duration: 0.7, ease: 'back.out(2)' }, 0.05);
-    tl.call(() => { this.spose = 'think'; }, null, 0.05);
+    tl.call(() => { this.spose = 'idle'; }, null, 0.05);
     tl.call(() => { this.spose = 'holdPhone'; }, null, 0.9);
 
     // 2 · QR
