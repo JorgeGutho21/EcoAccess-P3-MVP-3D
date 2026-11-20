@@ -40,7 +40,7 @@ h1{font:800 70px/1 var(--f-disp);letter-spacing:-.025em;margin:14px 0 10px;color
 /* ---------- Escenas 3D ---------- */
 .stage3d{position:absolute;overflow:hidden}
 .stage3d canvas{display:block;width:100%;height:100%;touch-action:none}
-.tags{position:absolute;pointer-events:none;overflow:hidden}
+.tags{position:absolute;pointer-events:none;overflow:hidden;transition:opacity .4s}
 #c1,#tags1{left:0;top:0;width:1920px;height:1080px}
 .slide::before{content:"";position:absolute;left:0;right:0;top:0;height:215px;background:linear-gradient(180deg,rgba(247,250,246,.94) 0%,rgba(247,250,246,.8) 55%,rgba(247,250,246,0) 100%);z-index:3;pointer-events:none}
 .bin-tag,.obj-tag{position:absolute;left:0;top:0;white-space:nowrap;display:flex;align-items:center;gap:8px;
@@ -62,8 +62,8 @@ h1{font:800 70px/1 var(--f-disp);letter-spacing:-.025em;margin:14px 0 10px;color
 
 .cap{position:absolute;left:64px;top:770px;width:780px;padding:16px 22px;border-radius:18px;background:rgba(255,255,255,.9);
   box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(6px);z-index:4}
-.cap b{font:700 25px/1.2 var(--f-disp);color:var(--g900)}
-.cap span{font:500 19px/1.35 var(--f-body);color:var(--ink2)}
+.cap b{font:800 30px/1.15 var(--f-disp);color:var(--g900);letter-spacing:-.01em}
+.cap span{font:500 21px/1.38 var(--f-body);color:var(--ink2)}
 .logbox{position:absolute;left:870px;top:770px;width:410px;padding:14px 18px;border-radius:18px;background:rgba(23,32,27,.9);color:#fff;z-index:4;min-height:96px}
 .logbox h4{margin:0 0 8px;font:700 16px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--lime);display:flex;justify-content:space-between}
 .logbox h4 small{font:500 13px/1 var(--f-body);letter-spacing:0;text-transform:none;color:rgba(255,255,255,.6)}

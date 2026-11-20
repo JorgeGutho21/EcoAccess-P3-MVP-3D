@@ -11,6 +11,7 @@ const res = await build({
   target: ['chrome100', 'edge100', 'firefox100', 'safari15'],
   write: false,
   legalComments: 'none',
+  loader: { '.png': 'dataurl', '.jpg': 'dataurl', '.webp': 'dataurl' },
 });
 const js = res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 const css = readFileSync('src/styles.css', 'utf8');

@@ -9,6 +9,27 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { canvasTex, redraw, rr, FONT, FONT_B } from './util.js';
+import faceUrl from './assets/eco_face.jpg';
+
+// Cara oficial (arte del usuario), ajustada al UV del visor: 1024×512
+let faceImg = null;
+const faceTargets = new Set();
+const lastFaceArgs = new WeakMap();
+export const faceReady = (typeof Image === 'undefined') ? Promise.resolve(null) : new Promise((resolve) => {
+  const im = new Image();
+  im.onload = () => {
+    faceImg = im;
+    for (const t of faceTargets) {
+      const a = lastFaceArgs.get(t.userData.canvas) || [t.userData.eco?.mood || 'idle', 0, 0];
+      redraw(t, (ctx, w, h) => drawEcoFace(ctx, w, h, ...a));
+    }
+    resolve(im);
+  };
+  im.onerror = () => resolve(null);
+  im.src = faceUrl;
+});
+// Regiones de los ojos dentro de la imagen (cx, cy, rx, ry del anillo; irx, iry del iris)
+const FACE_EYES = [[250, 245, 160, 102, 118, 80], [812, 245, 152, 102, 112, 80]];
 
 const V3 = THREE.Vector3;
 const TAU = Math.PI * 2;
@@ -308,14 +329,43 @@ function drawSprout(ctx, x, y, s, fill, rib) {
 }
 
 function logoTex() {
+  // pecho: disco oscuro con aro verde y brote verde luminoso
   return canvasTex(256, 256, (ctx, w, h) => {
     const g = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 2);
-    g.addColorStop(0, '#0d2416'); g.addColorStop(0.75, '#040b07'); g.addColorStop(1, '#020604');
+    g.addColorStop(0, '#0f2a17'); g.addColorStop(0.75, '#040b07'); g.addColorStop(1, '#020604');
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(92,255,122,0.35)'; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.43, 0, TAU); ctx.stroke();
-    ctx.shadowColor = GLOW; ctx.shadowBlur = 22;
-    drawSprout(ctx, w / 2, h * 0.47, w * 0.62, '#DDFFE4', '#2a8a45');
+    ctx.shadowColor = GLOW; ctx.shadowBlur = 18;
+    ctx.strokeStyle = '#6DFF86'; ctx.lineWidth = 9;
+    ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.44, 0, TAU); ctx.stroke();
+    ctx.shadowBlur = 24;
+    drawSprout(ctx, w / 2, h * 0.47, w * 0.62, '#7DFF96', '#0f3a1c');
+  });
+}
+function earLogoTex() {
+  // oreja (como el arte oficial): disco verde, aro brillante, brote blanco
+  return canvasTex(256, 256, (ctx, w, h) => {
+    const g = ctx.createRadialGradient(w * 0.46, h * 0.42, 8, w / 2, h / 2, w / 2);
+    g.addColorStop(0, '#2c9c33'); g.addColorStop(0.6, '#13661d'); g.addColorStop(0.86, '#0a3d12'); g.addColorStop(1, '#0a3d12');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.shadowColor = '#9dff7a'; ctx.shadowBlur = 16;
+    ctx.strokeStyle = '#B8FF9A'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.455, 0, TAU); ctx.stroke();
+    ctx.shadowColor = 'rgba(255,255,255,0.7)'; ctx.shadowBlur = 10;
+    drawSprout(ctx, w / 2, h * 0.47, w * 0.66, '#FFFFFF', '#2a8f33');
+  });
+}
+function handDecalTex() {
+  // dorso de la mano (MANO ECO): hoja, dos arcos y rejilla de 3 barras
+  return canvasTex(256, 256, (ctx, w, h) => {
+    ctx.translate(w / 2, h / 2);
+    ctx.shadowColor = GLOW; ctx.shadowBlur = 12;
+    ctx.strokeStyle = '#8CFF9E'; ctx.fillStyle = '#8CFF9E'; ctx.lineCap = 'round';
+    ctx.save(); ctx.rotate(Math.PI); drawSprout(ctx, 0, 8, 84, '#8CFF9E', '#0d3a18'); ctx.restore();
+    ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.arc(0, 0, 92, Math.PI * 0.62, Math.PI * 0.86); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 78, Math.PI * 0.64, Math.PI * 0.84); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 92, Math.PI * 1.62, Math.PI * 1.86); ctx.stroke();
+    for (let k = 0; k < 3; k++) { rr(ctx, 50 + k * 13, 62, 7, 30, 3.5); ctx.fill(); }
   });
 }
 function leafTex() {
@@ -421,10 +471,10 @@ let ledMask = null, ledLayer = null;
 function ledPattern(ctx) {
   if (!ledMask) {
     ledMask = document.createElement('canvas');
-    ledMask.width = ledMask.height = 6;
+    ledMask.width = ledMask.height = 5;
     const c = ledMask.getContext('2d');
     c.fillStyle = '#fff';
-    c.beginPath(); c.arc(3, 3, 2.55, 0, TAU); c.fill();
+    c.beginPath(); c.arc(2.5, 2.5, 2.05, 0, TAU); c.fill();
   }
   return ctx.createPattern(ledMask, 'repeat');
 }
@@ -433,7 +483,7 @@ function ell(ctx, x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 
 function drawEye(ctx, cx, cy, open, px, py) {
   ctx.save();
   ctx.translate(cx, cy); ctx.scale(1, Math.max(0.06, open));
-  const RX = 116, RY = 126;
+  const RX = 116, RY = 104;
   // anillo exterior brillante (grueso para leerse a tamaño pequeño)
   ctx.fillStyle = '#7DFF96'; ell(ctx, 0, 0, RX, RY); ctx.fill();
   // anillo oscuro del iris
@@ -453,8 +503,62 @@ function drawEye(ctx, cx, cy, open, px, py) {
   ctx.restore();
 }
 
+function drawFaceImage(ctx, w, h, mood, blink, look) {
+  ctx.save();
+  ctx.scale(w / 1024, h / 512);
+  ctx.fillStyle = '#04070a'; ctx.fillRect(0, 0, 1024, 512);
+  ctx.drawImage(faceImg, 0, 0, 1024, 512);
+  const G1 = '#8CFFA0';
+  for (const [cx, cy, rx, ry, irx, iry] of FACE_EYES) {
+    // mirada: se redibuja el iris desplazado dentro de su propio contorno
+    if (Math.abs(look) > 0.02) {
+      ctx.save();
+      ell(ctx, cx, cy + 6, irx, iry); ctx.clip();
+      ctx.fillStyle = '#04070a'; ctx.fillRect(cx - irx, cy - iry, irx * 2, iry * 2 + 12);
+      const dx = look * 22, pad = 18;
+      ctx.drawImage(faceImg, cx - irx - pad, cy - iry - pad, (irx + pad) * 2, (iry + pad) * 2 + 12,
+        cx - irx - pad + dx, cy - iry - pad, (irx + pad) * 2, (iry + pad) * 2 + 12);
+      ctx.restore();
+    }
+    // feliz: párpados inferiores que suben en arco
+    if (mood === 'happy' && blink < 0.8) {
+      ctx.save();
+      ell(ctx, cx, cy, rx + 14, ry + 14); ctx.clip();
+      const top = cy + ry * 0.18;
+      ctx.fillStyle = '#04070a';
+      ctx.beginPath(); ctx.moveTo(cx - rx - 20, cy + ry + 20); ctx.lineTo(cx - rx - 20, top + ry * 0.55);
+      ctx.quadraticCurveTo(cx, top - ry * 0.45, cx + rx + 20, top + ry * 0.55); ctx.lineTo(cx + rx + 20, cy + ry + 20); ctx.fill();
+      ctx.shadowColor = GLOW; ctx.shadowBlur = 18; ctx.strokeStyle = G1; ctx.lineWidth = 16; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cx - rx * 0.86, top + ry * 0.38); ctx.quadraticCurveTo(cx, top - ry * 0.45, cx + rx * 0.86, top + ry * 0.38); ctx.stroke();
+      ctx.restore();
+    }
+    // parpadeo: párpado superior negro con borde verde
+    if (blink > 0.02) {
+      ctx.save();
+      ell(ctx, cx, cy, rx + 16, ry + 16); ctx.clip();
+      const edge = cy - ry - 16 + (2 * ry + 32) * Math.min(1, blink * 1.04);
+      ctx.fillStyle = '#04070a'; ctx.fillRect(cx - rx - 20, cy - ry - 20, rx * 2 + 40, edge - (cy - ry - 20));
+      ctx.restore();
+      if (blink > 0.15) {
+        ctx.save();
+        ctx.shadowColor = GLOW; ctx.shadowBlur = 18; ctx.strokeStyle = G1; ctx.lineWidth = 16; ctx.lineCap = 'round';
+        const yy = Math.min(edge, cy + ry * 0.55);
+        const half = rx * Math.sqrt(Math.max(0.15, 1 - ((yy - cy) / (ry + 16)) ** 2));
+        ctx.beginPath(); ctx.moveTo(cx - half * 0.9, yy); ctx.quadraticCurveTo(cx, yy + 18 * blink, cx + half * 0.9, yy); ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+  // textura LED sutil sobre los trazos añadidos
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = 0.18; ctx.fillStyle = ledPattern(ctx); ctx.fillRect(0, 0, 1024, 512);
+  ctx.restore();
+}
+
 export function drawEcoFace(ctx, w, h, mood = 'idle', blink = 0, look = 0) {
   blink = clamp(blink || 0, 0, 1); look = clamp(look || 0, -1, 1);
+  if (ctx && ctx.canvas) lastFaceArgs.set(ctx.canvas, [mood, blink, look]);
+  if (faceImg && (mood === 'idle' || mood === 'happy' || !mood)) { drawFaceImage(ctx, w, h, mood, blink, look); return; }
   const W = 1024, H = 512;
   // capa de símbolos (nítida) que luego se convierte en matriz de LEDs
   if (!ledLayer) { ledLayer = document.createElement('canvas'); ledLayer.width = W; ledLayer.height = H; }
@@ -462,18 +566,21 @@ export function drawEcoFace(ctx, w, h, mood = 'idle', blink = 0, look = 0) {
   L.setTransform(1, 0, 0, 1, 0, 0);
   L.globalCompositeOperation = 'source-over';
   L.clearRect(0, 0, W, H);
+  const KX = 1.38;
+  L.setTransform(KX, 0, 0, 1, 0, 0); // se dibuja en un espacio virtual de 742×512
   L.lineCap = 'round'; L.lineJoin = 'round';
   const G1 = '#7DFF96';
-  const lx = look * 34;
-  const E = [[-1, 512 - 238], [1, 512 + 238]];
-  const EY = 258;
+  const lx = look * 26;
+  const VC = W / KX / 2;
+  const E = [[-1, VC - 200], [1, VC + 200]];
+  const EY = 245;
   // cejas
   for (const [s, cx] of E) {
     let lift = 0, tilt = 0;
     if (mood === 'think') { lift = s < 0 ? 30 : -6; tilt = s < 0 ? -0.1 : 0.14; }
     else if (mood === 'question') { lift = 22; tilt = -s * 0.08; }
     else if (mood === 'happy') lift = 12;
-    L.save(); L.translate(cx + lx * 0.3, 100 - lift); L.rotate(tilt);
+    L.save(); L.translate(cx + lx * 0.3, 74 - lift); L.rotate(tilt);
     L.strokeStyle = G1; L.lineWidth = 30;
     L.beginPath(); L.arc(0, 84, 104, Math.PI * 1.3, Math.PI * 1.7); L.stroke();
     L.restore();
@@ -499,14 +606,14 @@ export function drawEcoFace(ctx, w, h, mood = 'idle', blink = 0, look = 0) {
   L.fillStyle = G1;
   for (const [s, cx] of E) {
     if (mood === 'happy') {
-      for (let k = 0; k < 3; k++) { L.save(); L.translate(cx + s * 122 + (k - 1) * 26, 400); L.rotate(0.35); rr(L, -7, -18, 14, 36, 7); L.fill(); L.restore(); }
+      for (let k = 0; k < 3; k++) { L.save(); L.translate(cx + s * 62 + (k - 1) * 26, 404); L.rotate(0.35); rr(L, -7, -18, 14, 36, 7); L.fill(); L.restore(); }
     } else {
-      rr(L, cx + s * 132 - 38, 394, 76, 22, 11); L.fill();
+      rr(L, cx + s * 62 - 38, 396, 76, 22, 11); L.fill();
     }
   }
   // boca
   L.save();
-  L.translate(512 + lx * 0.45, 368);
+  L.translate(VC + 24 + lx * 0.45, 406);
   if (mood === 'think') {
     L.strokeStyle = G1; L.lineWidth = 22;
     L.beginPath(); L.moveTo(-48, 6); L.bezierCurveTo(-18, -12, 16, 20, 48, -2); L.stroke();
@@ -542,6 +649,7 @@ export function drawEcoFace(ctx, w, h, mood = 'idle', blink = 0, look = 0) {
   ctx.filter = 'blur(5px)'; ctx.globalAlpha = 0.5; ctx.drawImage(ledLayer, 0, 0);
   ctx.filter = 'none'; ctx.globalAlpha = 1;
   // símbolos recortados en puntos LED
+  L.setTransform(1, 0, 0, 1, 0, 0);
   L.globalCompositeOperation = 'destination-in';
   L.fillStyle = ledPattern(L); L.fillRect(0, 0, W, H);
   L.globalCompositeOperation = 'source-over';
@@ -554,10 +662,10 @@ export function drawEcoFace(ctx, w, h, mood = 'idle', blink = 0, look = 0) {
 // Manos
 // ---------------------------------------------------------------------
 const FINGERS = [
-  { z: 0.037, L: [0.036, 0.028, 0.023], r: 0.0135 },
-  { z: 0.0125, L: [0.039, 0.03, 0.024], r: 0.0139 },
-  { z: -0.0125, L: [0.036, 0.028, 0.023], r: 0.0135 },
-  { z: -0.036, L: [0.029, 0.023, 0.02], r: 0.0122 },
+  { z: 0.037, L: [0.047, 0.037, 0.031], r: 0.0138 },
+  { z: 0.0125, L: [0.051, 0.04, 0.032], r: 0.0142 },
+  { z: -0.0125, L: [0.047, 0.037, 0.031], r: 0.0138 },
+  { z: -0.036, L: [0.038, 0.03, 0.026], r: 0.0126 },
 ];
 const FIST = [1.5, 1.75, 1.3];
 export const HAND_SHAPES = {
@@ -571,6 +679,7 @@ const copyShape = (s) => ({ f: s.f.map((a) => a.slice()), spread: s.spread, t: s
 
 // Mano con piel rígida: todos los segmentos en 3 SkinnedMesh (blanco, brillo, juntas)
 function buildHand(s, M) {
+  const softCyl = (seg = 40, b = 0.08) => lathe([[0.001, -0.5], [1 - b, -0.5], [1 - b * 0.3, -0.5 + b * 0.3], [1, -0.5 + b], [1, 0.5 - b], [1 - b * 0.3, 0.5 - b * 0.3], [1 - b, 0.5], [0.001, 0.5]], seg);
   const hand = new THREE.Group();
   const root = new THREE.Bone(); hand.add(root);
   const bones = [root];
@@ -590,18 +699,26 @@ function buildHand(s, M) {
   };
   const bone = (parent, x, y, z) => { const b = new THREE.Bone(); b.position.set(x, y, z); parent.add(b); bones.push(b); return b; };
   // palma y muñeca
-  add(new THREE.SphereGeometry(0.03, 18, 12), M.darkChrome, root, [0, -0.004, 0]);
-  add(ringGeo(0.031, 0.006, 24, 6), M.gap, root, [0, -0.02, 0]);
-  add(ringGeo(0.029, 0.0042, 28, 6), M.glow, root, [0, -0.018, 0]);
-  add(new RoundedBoxGeometry(0.052, 0.086, 0.102, 3, 0.022), M.white, root, [0, -0.062, 0]);
-  add(new THREE.SphereGeometry(0.025, 16, 12), M.white, root, [-s * 0.012, -0.046, 0.042, 0, 0, 0, 0.9, 1.2, 1]);
+  // muñeca: aro grueso negro cromado con banda verde luminosa
+  add(softCyl(32, 0.2), M.wristRing, root, [0, -0.008, 0, 0, 0, 0, 0.041, 0.036, 0.041]);
+  add(ringGeo(0.0415, 0.0042, 36, 6), M.glow, root, [0, -0.008, 0]);
+  add(ringGeo(0.036, 0.004, 32, 5), M.gap, root, [0, -0.027, 0]);
+  // carcasa de la palma: perla brillante, más bombeada en el dorso
+  add(new RoundedBoxGeometry(0.054, 0.09, 0.106, 4, 0.025), M.white, root, [0, -0.066, 0]);
+  add(new THREE.SphereGeometry(1, 20, 12), M.white, root, [s * 0.008, -0.064, 0, 0, 0, 0, 0.024, 0.044, 0.05]);
+  add(new THREE.SphereGeometry(0.026, 16, 12), M.white, root, [-s * 0.012, -0.048, 0.043, 0, 0, 0, 0.9, 1.2, 1]);
+  // junta de la carcasa (línea oscura en el dorso)
+  add(tube([new V3(s * 0.0285, -0.03, -0.054), new V3(s * 0.031, -0.05, -0.01), new V3(s * 0.0295, -0.083, 0.03), new V3(s * 0.026, -0.1, 0.05)], 0.0016, 16, false, 4), M.seam, root);
+  // logotipo de hoja + arcos + rejilla luminosos en el dorso
+  add(new THREE.PlaneGeometry(0.082, 0.082).rotateY(s * Math.PI / 2), M.handDecal, root, [s * 0.0322, -0.064, 0.0]);
   const seg = (b, r, len) => {
-    const L = len - 0.007;
+    const L = len - 0.009;
     const cl = Math.max(0.002, L - 2 * r);
     const sy = Math.min(1, L / (cl + 2 * r));
-    add(new THREE.CapsuleGeometry(r, cl, 2, 9), M.white, b, [0, -0.0035 - L / 2, 0, 0, 0, 0, 1, sy, 1]);
-    add(new THREE.SphereGeometry(r * 0.8, 8, 5), M.gap, b, [0, 0, 0]);
-    add(new THREE.TorusGeometry(r * 0.84, r * 0.15, 4, 14).rotateX(Math.PI / 2), M.glowSoft, b);
+    add(new THREE.CapsuleGeometry(r, cl, 3, 10), M.white, b, [0, -0.0045 - L / 2, 0, 0, 0, 0, 1, sy, 1]);
+    // ranura entre segmentos: núcleo oscuro con banda verde brillante
+    add(softCyl(12, 0.2), M.gap, b, [0, 0, 0, 0, 0, 0, r * 0.84, 0.011, r * 0.84]);
+    add(new THREE.TorusGeometry(r * 0.84, r * 0.17, 4, 14).rotateX(Math.PI / 2), M.glow, b);
   };
   const fingers = [];
   for (const F of FINGERS) {
@@ -614,9 +731,9 @@ function buildHand(s, M) {
     fingers.push([j1, j2, j3]);
   }
   const t1 = bone(root, -s * 0.016, -0.043, 0.048);
-  seg(t1, 0.0152, 0.037);
-  const t2 = bone(t1, 0, -0.037, 0);
-  seg(t2, 0.0146, 0.033);
+  seg(t1, 0.0156, 0.045);
+  const t2 = bone(t1, 0, -0.045, 0);
+  seg(t2, 0.015, 0.042);
   hand.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(bones);
   for (const [mat, list] of lists) {
@@ -782,6 +899,12 @@ export function makeEco() {
     stem: new THREE.MeshPhysicalMaterial({ color: 0x4f9a2c, roughness: 0.4, clearcoat: 0.6, sheen: 0.25, sheenColor: 0x9fdc70 }),
     midrib: new THREE.MeshPhysicalMaterial({ color: 0x9fd86a, roughness: 0.35, clearcoat: 0.8 }),
   };
+  const hd = handDecalTex();
+  M.handDecal = new THREE.MeshStandardMaterial({ map: hd, emissiveMap: hd, emissive: 0x5CFF7A, emissiveIntensity: 2.8, transparent: true, alphaTest: 0.08, depthWrite: false, roughness: 0.3, polygonOffset: true, polygonOffsetFactor: -2 });
+  M.wristRing = new THREE.MeshPhysicalMaterial({ color: 0x15191a, metalness: 0.9, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.05 });
+  M.accent = new THREE.MeshPhysicalMaterial({ color: 0x2a7a22, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.04, metalness: 0.1 });
+  const earLogo = earLogoTex();
+  M.earLogo = new THREE.MeshStandardMaterial({ map: earLogo, emissiveMap: earLogo, emissive: 0xffffff, emissiveIntensity: 1.5, roughness: 0.2 });
   M.glowSoft = new THREE.MeshStandardMaterial({ color: 0x5CFF7A, emissive: 0x5CFF7A, emissiveIntensity: 2.7, roughness: 0.35 });
   M.leaf = new THREE.MeshPhysicalMaterial({ map: leafTex(), roughness: 0.36, sheen: 0.3, sheenRoughness: 0.4, sheenColor: 0xb8f080, clearcoat: 0.85, clearcoatRoughness: 0.12, side: THREE.DoubleSide, emissive: 0x2a6a10, emissiveIntensity: 0.25 });
   const logo = logoTex();
@@ -795,9 +918,9 @@ export function makeEco() {
   M.decal = new THREE.MeshPhysicalMaterial({ map: decalLeafTex(), alphaTest: 0.5, roughness: 0.25, clearcoat: 1 });
   const faceTex = canvasTex(1024, 512, (ctx, w, h) => drawEcoFace(ctx, w, h, 'idle', 0, 0));
   // placa de la cara: emisiva y mate; el brillo lo aporta la cúpula de vidrio exterior
-  M.visor = new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: faceTex, emissive: 0xffffff, emissiveMap: faceTex, emissiveIntensity: 3.6, roughness: 0.45, envMapIntensity: 0.15 });
+  M.visor = new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: faceTex, emissive: 0xffffff, emissiveMap: faceTex, emissiveIntensity: 1.3, roughness: 0.45, envMapIntensity: 0.15 });
   M.visorGlass = new THREE.MeshPhysicalMaterial({ color: 0x000000, transparent: true, opacity: 0.25, roughness: 0.04, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 2.5, depthWrite: false });
-  const glowMats = [M.glow, M.glowSoft, M.logo, M.tabLeaf, M.hole];
+  const glowMats = [M.glow, M.glowSoft, M.logo, M.earLogo, M.handDecal, M.tabLeaf, M.hole];
   for (const m of glowMats) m.userData.base = m.emissiveIntensity;
 
 
@@ -1031,7 +1154,7 @@ export function makeEco() {
     P.add(ringGeo(0.068, 0.006, 32, 6), M.chrome, [0, 0.006, 0]);
     P.add(ringGeo(0.085, 0.014, 36, 8), M.gap, [0, 0.035, 0]);
     // visor (superelipse proyectada sobre la cabeza)
-    const TH = 1.0, PC = -0.06, PH = 0.54, NE = 4;
+    const TH = 0.8, PC = -0.12, PH = 0.68, NE = 4;
     const se = (al) => {
       const c = Math.cos(al), s = Math.sin(al);
       return [Math.sign(c) * Math.abs(c) ** (2 / NE), Math.sign(s) * Math.abs(s) ** (2 / NE)];
@@ -1085,6 +1208,18 @@ export function makeEco() {
     // tallo
     const top = HC + RY;
     P.add(tube([new V3(0, top - 0.02, 0), new V3(0.004, top + 0.03, 0.004), new V3(0.0, top + 0.05, 0.01), new V3(-0.004, top + 0.065, 0.012)], 0.011, 14, false, 8), M.stem);
+    // acentos verdes brillantes en los laterales de la cabeza
+    for (const s of [-1, 1]) {
+      const acc = surf((u, v, t) => {
+        const ph = 0.22 + v * 0.4;
+        const th = s * (0.9 + u * (0.3 - 0.12 * v));
+        return headPt(th, ph, 0.0025, t);
+      }, 10, 8, { flip: s < 0 });
+      P.add(acc, M.accent);
+      const edge = [];
+      for (let i = 0; i <= 12; i++) { const k = i / 12; edge.push(headPt(s * 0.895, 0.2 + k * 0.44, 0.001, new V3())); }
+      P.add(tube(edge, 0.003, 14, false, 4), M.seam);
+    }
     // orejas / auriculares
     for (const s of [-1, 1]) {
       const e = headPt(s * Math.PI / 2, -0.03, 0, new V3());
@@ -1098,7 +1233,7 @@ export function makeEco() {
       P.add(new THREE.TorusGeometry(0.168, 0.004, 6, 52), M.gap, ET(M4(0, 0.008, 0, Math.PI / 2, 0, 0)));
       P.add(new THREE.TorusGeometry(0.113, 0.0095, 10, 48), M.chrome, ET(M4(0, 0.088, 0, Math.PI / 2, 0, 0)));
       P.add(new THREE.TorusGeometry(0.099, 0.0068, 8, 48), M.glow, ET(M4(0, 0.09, 0, Math.PI / 2, 0, 0)));
-      P.add(new THREE.CircleGeometry(0.093, 40), M.logo, ET(M4(0, 0.0885, 0, -Math.PI / 2, 0, 0)));
+      P.add(new THREE.CircleGeometry(0.093, 40), M.earLogo, ET(M4(0, 0.0885, 0, -Math.PI / 2, 0, s * Math.PI / 2)));
     }
     P.build(headG);
 
@@ -1175,8 +1310,19 @@ export function makeEco() {
     PF.add(ringGeo(0.079, 0.006, 40, 6), M.gap, [0, -0.168, 0]);
     PF.add(new THREE.CircleGeometry(0.06, 28), M.gap, [0, -0.25, 0, Math.PI / 2, 0, 0]);
     PF.build(el);
+    {
+      const c = s * Math.PI / 2 + s * 0.35;
+      const geo = surf((u, v, t) => {
+        const y = -0.15 + v * 0.07;
+        const a = c - 0.45 * s + u * 0.9 * s;
+        const r = 0.086 + 0.005;
+        return t.set(r * Math.sin(a), y, r * Math.cos(a));
+      }, 12, 5, { flip: s < 0 });
+      const pm = new THREE.Mesh(geo, M.patchLeaf); pm.castShadow = pm.receiveShadow = true; el.add(pm);
+    }
     const hand = buildHand(s, M);
-    hand.group.scale.setScalar(1.4);
+    hand.group.scale.setScalar(1.6);
+    hand.group.position.y = -0.018;
     wr.add(hand.group);
     hands[side] = hand;
   }
@@ -1221,7 +1367,7 @@ export function makeEco() {
   // Tablet: posición deseada en reposo y agarre (muñeca en el espacio de la tablet, unidades de ECO)
   const tabWorld = M4(-0.17, 0.77, 0.29, -0.3, 0.22, 0.04);
   const grip = new THREE.Matrix4().makeBasis(new V3(0, 1, 0), new V3(0, 0, -1), new V3(-1, 0, 0))
-    .setPosition(-TAB_W / 2 + 0.085, -TAB_H / 2 - 0.034, -0.098);
+    .setPosition(-TAB_W / 2 + 0.095, -TAB_H / 2 - 0.04, -0.122);
   const wT = new THREE.Matrix4().multiplyMatrices(tabWorld, grip);
   const wx = new V3(), wy = new V3(), wz = new V3();
   wT.extractBasis(wx, wy, wz);
@@ -1268,6 +1414,9 @@ export function makeEco() {
   setHand('R', 'relaxed'); hands.R.cur = copyShape(HAND_SHAPES.relaxed); applyHand(hands.R);
 
   const U = root.userData;
+  faceTex.userData.eco = U;
+  faceTargets.add(faceTex);
+  if (faceImg) redraw(faceTex, (ctx, w, h) => drawEcoFace(ctx, w, h, 'idle', 0, 0));
   function update(dt, t = 0, poseName = 'idle', reduced = false) {
     dt = clamp(dt || 0, 0, 0.1);
     const P = POSES[poseName] || POSES.idle;

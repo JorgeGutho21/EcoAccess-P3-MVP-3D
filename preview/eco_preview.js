@@ -4,14 +4,15 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { makeEco, drawEcoFace } from '../src/eco.js';
+import { makeEco, drawEcoFace, faceReady } from '../src/eco.js';
 import { redraw } from '../src/util.js';
 
 // Iluminación equivalente a slide1 (exterior soleado)
 const W = 1280, H = 720;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(W, H); renderer.setPixelRatio(1);
-renderer.domElement.style.cssText = 'display:block';
+renderer.domElement.style.cssText = 'display:block;width:100vw;height:auto';
+document.documentElement.style.overflow = 'hidden';
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.82;
@@ -40,10 +41,10 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), 0.7, 0.45, 2.3); comp
 composer.addPass(new OutputPass());
 window.eco = eco; window.THREE = THREE; window.camera = camera; window.renderer = renderer;
 window.render = () => { composer.render(); return renderer.info.render; };
-window.setPose = (p, yaw = 0, mood = 'idle') => {
+window.setPose = (p, yaw = 0, mood = 'idle', blink = 0, look = 0) => {
   eco.rotation.y = yaw;
   for (let i = 0; i < 90; i++) eco.userData.update(1 / 30, i / 30, p, true);
-  redraw(eco.userData.faceTex, (ctx, w, h) => drawEcoFace(ctx, w, h, mood, 0, 0));
+  redraw(eco.userData.faceTex, (ctx, w, h) => drawEcoFace(ctx, w, h, mood, blink, look));
   composer.render();
   let meshes = 0; eco.traverse((o) => { if (o.isMesh) meshes++; });
   return { meshes };
@@ -53,3 +54,4 @@ window.countTris = () => { let t = 0; eco.traverse((o) => { if (o.isMesh) { cons
 window.topTris = () => { const a = []; eco.traverse((o) => { if (o.isMesh) { const g = o.geometry; a.push([((g.index ? g.index.count : g.attributes.position.count) / 3) | 0, o.material.name || o.material.color?.getHexString(), o.parent?.name]); } }); return a.sort((x, y) => y[0] - x[0]).slice(0, 12); };
 window.bbox = () => new THREE.Box3().setFromObject(eco);
 window.setPose('idle');
+faceReady.then((im) => { window.faceLoaded = !!im; composer.render(); });

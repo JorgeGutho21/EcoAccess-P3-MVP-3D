@@ -7,6 +7,7 @@ import gsap from 'gsap';
 import { View, addLights, shadowFloor, canvasTex, redraw, rr, wrap, drawQR, C, FONT, FONT_B, state, damp } from './util.js';
 import { makePhone, makeWaste } from './models.js';
 import { makeEco, drawEcoFace } from './eco.js';
+import { makeStudent } from './student.js';
 import { makeStation } from './station.js';
 import { makeCampus, setupSky } from './env.js';
 import { BINS, WASTES, FLOW } from './content.js';
@@ -202,22 +203,34 @@ export class Slide1 {
     this.pose = 'idle';
 
     this.phone = makePhone();
-    this.phone.position.set(-2.62, 1.75, 1.35);
-    this.phone.scale.setScalar(1.3);
-    this.phone.rotation.set(-0.08, 0.32, 0.04);
+    this.phone.position.set(-3.25, 2.05, 0.45);
+    this.phone.scale.setScalar(1.15);
+    this.phone.rotation.set(-0.06, 0.3, 0.03);
     this.scene.add(this.phone);
     this.phoneTex = this.phone.userData.screenTex;
+    this.phoneHome = this.phone.position.clone();
+
+    // Estudiante 3D con su celular (el teléfono grande muestra su pantalla ampliada)
+    this.student = makeStudent();
+    this.student.scale.setScalar(1.3);
+    this.student.position.set(-1.75, 0, 2.05);
+    this.student.rotation.y = 0.45;
+    this.scene.add(this.student);
+    this.stU = this.student.userData;
+    this.spose = 'idle';
+    this.miniPhone = makePhone();
+    this.miniPhone.scale.setScalar(0.12);
+    this.miniPhone.position.set(0, 0.02, 0.02);
+    this.miniPhone.traverse((o) => { if (o.material && o.material.map === this.miniPhone.userData.screenTex) o.material.map = this.phoneTex; });
+    this.stU.handR.add(this.miniPhone);
+    // línea punteada: celular del estudiante → pantalla ampliada
+    this.callout = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+      new THREE.LineDashedMaterial({ color: 0x2f8a3c, dashSize: 0.08, gapSize: 0.06, transparent: true, opacity: 0.85 }));
+    this.callout.frustumCulled = false;
+    this.scene.add(this.callout);
     this.ps = { mode: 'home', p: 0, msgs: [], typing: false };
     this.ts = { mode: 'idle', query: '', p: 0 };
 
-    // pedestal de residuo (junto al teléfono)
-    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 0.5, 40), new THREE.MeshPhysicalMaterial({ color: 0xf7faf6, roughness: 0.3, clearcoat: 0.8 }));
-    ped.position.set(-1.6, 0.25, 2.15); ped.castShadow = ped.receiveShadow = true;
-    this.scene.add(ped);
-    const pedRing = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.018, 8, 64), new THREE.MeshStandardMaterial({ color: 0x8cf29a, emissive: 0x4cd964, emissiveIntensity: 0.8 }));
-    pedRing.rotation.x = Math.PI / 2; pedRing.position.set(-1.6, 0.5, 2.15);
-    this.scene.add(pedRing);
-    this.pedRing = pedRing;
     this.itemHome = new THREE.Vector3(-1.6, 0.52, 2.15);
     this.items = {};
     for (const k of Object.keys(WASTES)) {
@@ -252,7 +265,7 @@ export class Slide1 {
     this.controls.target.set(-0.05, 1.25, 0.2);
     this.controls.enableDamping = true;
     this.controls.enablePan = false;
-    this.controls.minDistance = 7; this.controls.maxDistance = 15;
+    this.controls.minDistance = 2.2; this.controls.maxDistance = 15;
     this.controls.minAzimuthAngle = -0.75; this.controls.maxAzimuthAngle = 0.75;
     this.controls.minPolarAngle = 0.95; this.controls.maxPolarAngle = 1.5;
     this.controls.rotateSpeed = 0.6;
@@ -263,6 +276,7 @@ export class Slide1 {
     this.initPicking();
     this.buildOverlays();
     this.redrawPhone(); this.redrawTablet(); this.setMood('idle');
+    this.guided = true;
     this.tl = null;
     this.current = null;
     this.logN = 0;
@@ -370,7 +384,8 @@ export class Slide1 {
   worldOf(obj, local) { return obj.localToWorld(local.clone()); }
 
   resetScene() {
-    Object.values(this.items).forEach((it) => { it.visible = false; it.position.copy(this.itemHome); it.scale.setScalar(1); it.rotation.set(0, 0, 0); });
+    Object.values(this.items).forEach((it) => { it.visible = false; this.stU.handL.add(it); it.position.set(0, -0.16, 0.06); it.scale.setScalar(0.8); it.rotation.set(0, 0, 0); });
+    this.spose = 'idle';
     this.bins.forEach((b) => { b.userData.lid.rotation.x = 0; b.userData.led.emissiveIntensity = 0; b.userData.halo.material.opacity = 0; });
     this.warnRing.material.opacity = 0;
     this.beam.material.opacity = 0;
@@ -402,7 +417,7 @@ export class Slide1 {
     const ps = this.ps, ts = this.ts;
     const tl = gsap.timeline({ onUpdate: () => { /* redibujos continuos */ } });
     this.tl = tl;
-    const phoneTop = () => this.worldOf(this.phone, new THREE.Vector3(0, 0.85, 0));
+    const phoneTop = () => this.worldOf(this.miniPhone, new THREE.Vector3(0, 0.85, 0));
     const tabletPos = () => this.worldOf(this.ecoU.tab, new THREE.Vector3(0, 0, 0.05));
     const qrPos = () => this.worldOf(this.station, this.station.userData.qrPos);
 
@@ -411,17 +426,21 @@ export class Slide1 {
       this.resetScene();
       item.visible = true;
       this.setStep('estudiante');
+      this.camTo('student');
       this.caption('1 · El estudiante llega con su residuo', `Trae ${w.nombre.toLowerCase()} y abre la cámara del celular.`);
     });
     tl.fromTo(item.scale, { x: 0.01, y: 0.01, z: 0.01 }, { x: 1, y: 1, z: 1, duration: 0.7, ease: 'back.out(2)' }, 0.05);
-    tl.fromTo(this.phone.position, { y: 1.75 }, { y: 1.9, duration: 0.6, yoyo: true, repeat: 1, ease: 'sine.inOut' }, 0.1);
+    tl.call(() => { this.spose = 'think'; }, null, 0.05);
+    tl.call(() => { this.spose = 'holdPhone'; }, null, 0.9);
 
     // 2 · QR
     tl.call(() => {
       this.setStep('qr');
+      this.camTo('qr');
       this.caption('2 · Escanea el único QR de la estación', 'El código abre la interfaz web de EcoAccess, sin instalar aplicaciones.');
       ps.mode = 'scan'; ps.p = 0;
       this.pose = 'present';
+      this.spose = 'scan';
     }, null, 1.4);
     tl.to(this.beam.material, { opacity: 0.4, duration: 0.3 }, 1.4);
     tl.to(this.station.userData.qrGlow.material, { opacity: 0.55, duration: 0.3, yoyo: true, repeat: 3 }, 1.4);
@@ -436,7 +455,9 @@ export class Slide1 {
     // 3 · ECO recibe
     tl.call(() => {
       this.pose = 'idle';
+      this.spose = 'holdPhone';
       this.setStep('eco');
+      this.camTo('eco');
       this.caption('3 · ECO recibe la consulta', `«${w.query}» viaja desde la interfaz web hasta el asistente.`);
       ps.msgs.push({ from: 'user', kind: 'photo', text: w.query, icon: kind === 'desconocido' ? '?' : '◎' });
       this.redrawPhone();
@@ -448,6 +469,7 @@ export class Slide1 {
     // 4 · Catálogo
     tl.call(() => {
       this.setStep('catalogo');
+      this.camTo('tablet');
       this.caption('4 · ECO consulta el catálogo verificado', 'Busca el residuo entre las fichas verificadas del MVP (meta inicial: ≥ 30).');
       ts.mode = 'search'; ts.query = w.query; ts.p = 0;
       this.setMood('think');
@@ -459,6 +481,7 @@ export class Slide1 {
     // 5 · Clasificación
     tl.call(() => {
       this.setStep('clasif');
+      this.camTo('eco', 1.1);
       ps.typing = false;
       if (w.bin) {
         ts.mode = 'result'; ts.bin = w.bin; ts.match = w.match;
@@ -480,6 +503,7 @@ export class Slide1 {
       tl.call(() => {
         this.setStep('caneca', 'skip');
         this.setStep('registro');
+        this.camTo('wide');
         this.caption('7 · Se registra la consulta sin destino', 'La interacción queda como «abstención». No se abre ninguna tapa.');
         this.addLog(w, null);
         this.sendPackets(tabletPos(), tabletPos().add(new THREE.Vector3(1.4, -0.9, -1.2)), 0xe3a21a, 1.0);
@@ -493,6 +517,7 @@ export class Slide1 {
     const binIn = () => this.worldOf(bin, new THREE.Vector3(0, 0.9, 0.05));
     tl.call(() => {
       this.setStep('caneca');
+      this.camTo('bins');
       this.caption(`6 · ECO señala la caneca ${w.bin.toUpperCase()}`, 'La apertura de la tapa es una representación demostrativa: no acredita hardware integrado ni validado.');
       this.demoChip.classList.add('on');
       bin.userData.led.emissiveIntensity = 2.2;
@@ -504,7 +529,7 @@ export class Slide1 {
     const fly = { t: 0 };
     tl.to(fly, {
       t: 1, duration: 1.5, ease: 'power1.inOut',
-      onStart: () => { fly.a = item.position.clone(); fly.c = binTop(); fly.m = fly.a.clone().lerp(fly.c, 0.5); fly.m.y += 1.6; },
+      onStart: () => { this.scene.attach(item); this.spose = 'point'; fly.a = item.position.clone(); fly.c = binTop(); fly.m = fly.a.clone().lerp(fly.c, 0.5); fly.m.y += 1.6; },
       onUpdate: () => {
         const a = fly.a || item.position, m = fly.m || a, c = fly.c || a, t = fly.t;
         const p = new THREE.Vector3().copy(a).multiplyScalar((1 - t) * (1 - t)).addScaledVector(m, 2 * (1 - t) * t).addScaledVector(c, t * t);
@@ -516,11 +541,12 @@ export class Slide1 {
     tl.to(item.scale, { x: 0.6, y: 0.6, z: 0.6, duration: 0.5 }, 11.4);
     tl.call(() => { item.visible = false; }, null, 11.9);
     tl.to(bin.userData.lid.rotation, { x: 0, duration: 0.7, ease: 'bounce.out' }, 12.0);
-    tl.call(() => { this.pose = 'thumbsUp'; }, null, 12.2);
+    tl.call(() => { this.pose = 'thumbsUp'; this.spose = 'idle'; }, null, 12.2);
 
     // 7 · Registro
     tl.call(() => {
       this.setStep('registro');
+      this.camTo('wide', 1.8);
       this.caption('7 · Se registra la interacción', 'Consulta → clasificación → destino. Una consulta registrada no es un depósito confirmado.');
       this.addLog(w, w.bin);
       ps.msgs = [ps.msgs[0], ps.msgs[1], { kind: 'result', bin: w.bin }];
@@ -559,6 +585,28 @@ export class Slide1 {
     gsap.to(this.camera.position, { ...this.home.pos, duration: 0.8, ease: 'power2.inOut' });
     gsap.to(this.controls.target, { ...this.home.target, duration: 0.8, ease: 'power2.inOut' });
   }
+  // Planos de cámara del recorrido guiado: cada paso lleva la mirada al objeto que se explica
+  shotFor(name) {
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const w = (o, l) => this.worldOf(o, l);
+    const eco = new THREE.Vector3(); this.eco.getWorldPosition(eco);
+    switch (name) {
+      case 'student': { const t = new THREE.Vector3(); this.student.getWorldPosition(t); t.x -= 0.5; t.y = 1.75; return { t, p: t.clone().add(V(1.4, 0.5, 5.6)) }; }
+      case 'qr': { const q = w(this.station, this.station.userData.qrPos); const st = new THREE.Vector3(); this.student.getWorldPosition(st); const t = st.lerp(q, 0.5); t.y = 1.6; return { t, p: t.clone().add(V(0.0, 1.1, 10.6)) }; }
+      case 'eco': { const t = eco.clone().add(V(0.15, 1.75, 0)); return { t, p: t.clone().add(V(0.7, 0.35, 4.6)) }; }
+      case 'tablet': { const t = w(this.ecoU.tab, V(0, 0, 0)); t.y += 0.55; return { t, p: t.clone().add(V(0.6, 0.45, 4.0)) }; }
+      case 'bins': { const t = w(this.station, V(-0.4, 1.0, 0.2)); t.x = (t.x + eco.x) / 2 + 0.6; t.y = 1.35; return { t, p: t.clone().add(V(-0.3, 1.3, 9.0)) }; }
+      default: return { t: this.home.target.clone(), p: this.home.pos.clone() };
+    }
+  }
+  camTo(name, dur = 1.5) {
+    if (!this.guided && name !== 'wide') return;
+    const { t, p } = this.shotFor(name);
+    this.root.querySelector('#tags1').style.opacity = name === 'wide' || name === 'bins' ? '1' : '0';
+    const d = state.reduced ? 0.01 : dur;
+    gsap.to(this.controls.target, { x: t.x, y: t.y, z: t.z, duration: d, ease: 'power2.inOut', overwrite: 'auto' });
+    gsap.to(this.camera.position, { x: p.x, y: p.y, z: p.z, duration: d, ease: 'power2.inOut', overwrite: 'auto' });
+  }
   focusEco() {
     const p = new THREE.Vector3(); this.eco.getWorldPosition(p);
     const h = 1.6 * this.eco.scale.y;
@@ -596,18 +644,20 @@ export class Slide1 {
       setTimeout(() => { if (U.mood === m) redraw(tex, (ctx, w, h) => drawEcoFace(ctx, w, h, m, 0, ap.look)); }, 120);
     }
     // residuo en reposo gira
-    if (this.current && (!this.tl || this.tl.time() < 9.9)) {
-      const it = this.items[this.current];
-      if (it && it.visible) it.rotation.y += dt * 0.8;
-    }
-    this.pedRing.material.emissiveIntensity = 0.6 + Math.sin(t * 3) * 0.3;
+
+    this.stU.update(dt, t, this.spose, state.reduced);
+    // residuo en la mano izquierda del estudiante mientras no vuela
+    // línea de la pantalla ampliada
+    { const a = this.worldOf(this.miniPhone, new THREE.Vector3(0, 0, 0.1)); const b = this.worldOf(this.phone, new THREE.Vector3(0, -0.86, 0));
+      const pos = this.callout.geometry.attributes.position; pos.setXYZ(0, a.x, a.y, a.z); pos.setXYZ(1, b.x, b.y, b.z); pos.needsUpdate = true; this.callout.computeLineDistances(); }
+    if (this.warnRing.material.opacity > 0.001) { const it = this.items[this.current]; if (it) { it.getWorldPosition(this.warnRing.position); } }
     // indicador de escritura en el teléfono
     if (this.ps.typing && Math.floor(t * 4) !== this._lastType) { this._lastType = Math.floor(t * 4); this.redrawPhone(); }
     if (this.ts.mode === 'search' && this.ts.p < 1) this.redrawTablet();
     this.flushScreens();
     // haz phone → QR
     if (this.beam.material.opacity > 0.001) {
-      const a = this.worldOf(this.phone, new THREE.Vector3(0, 0.85, 0));
+      const a = this.worldOf(this.miniPhone, new THREE.Vector3(0, 0.85, 0));
       const b = this.worldOf(this.station, this.station.userData.qrPos);
       const len = a.distanceTo(b);
       this.beam.position.copy(a).lerp(b, 0.5);

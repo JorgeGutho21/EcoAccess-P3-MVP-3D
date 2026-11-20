@@ -53,6 +53,10 @@ async function boot() {
         arch.view.renderer.compile(arch.scene, arch.camera);
         hidden.forEach((o) => (o.visible = false));
         s1.render(); s2.render(); arch.render();
+        const glc = s1.view.renderer.getContext();
+        const dbg = glc.getExtension('WEBGL_debug_renderer_info');
+        const gpu = dbg ? String(glc.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+        if (/Intel|UHD|HD Graphics|Mali|Adreno|PowerVR|SwiftShader|llvmpipe/i.test(gpu) && !/Arc/i.test(gpu)) setQuality(1);
       } catch (err) { console.warn(err); }
     } catch (err) {
       console.error(err);
@@ -172,11 +176,18 @@ function wire() {
   $('[data-act="replay"]').addEventListener('click', () => s1 && s1.replay());
   $('[data-act="view"]').addEventListener('click', () => s1 && s1.resetView());
   $('[data-act="eco"]').addEventListener('click', () => s1 && s1.focusEco());
+  $('[data-act="guided"]').addEventListener('click', toggleGuided);
   $$('.rail button').forEach((b) => b.addEventListener('click', () => s2 && s2.focus(+b.dataset.phase)));
   addEventListener('keydown', onKey);
   addEventListener('hashchange', () => go(/2/.test(location.hash) ? 1 : 0));
 }
 
+function toggleGuided() {
+  if (!s1) return;
+  s1.guided = !s1.guided;
+  $('[data-act="guided"]').classList.toggle('on', s1.guided);
+  if (!s1.guided) s1.resetView();
+}
 function pause() {
   if (!s1) return;
   const p = s1.togglePause();
@@ -207,6 +218,7 @@ function onKey(e) {
     if (k === 'r') s1.replay();
     if (k === '0') s1.resetView();
     if (k === 'e') s1.focusEco();
+    if (k === 'c') toggleGuided();
     if (k === 'a') s1.orbit(-0.18);
     if (k === 'd') s1.orbit(0.18);
     if (k === 'w') s1.orbit(0, 0.88);
