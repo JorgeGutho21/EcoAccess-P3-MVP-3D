@@ -67,6 +67,9 @@ async function boot() {
   wire();
   const start = /2/.test(location.hash) ? 1 : 0;
   go(start, true);
+  // Parámetros para capturas de evidencia: ?demo=pet&at=10  ·  ?phase=4&mode=real
+  if (s1 && params.get('demo')) { s1.guided = false; s1.run(params.get('demo')); const at = parseFloat(params.get('at') || '0'); if (at) { s1.tl.seek(at, false); } if (params.has('hold')) s1.tl.pause(); }
+  if (s2 && params.get('phase')) { s2.focus(Math.max(0, Math.min(3, +params.get('phase') - 1)), true); if (params.get('mode')) s2.setMode4(params.get('mode')); }
   requestAnimationFrame(loop);
   window.__eco = { s1, s2, arch, go };
 }
